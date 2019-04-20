@@ -5,8 +5,9 @@ const path = require('path');
 const mime = require('mime');
 const crypto = require('crypto');
 
-const keys = ["1"];
-const keysCompany = ["h"];
+const keys = ["Serra.Henrique", "=Certifiy@TecnoJr"];
+const keysCompany = ["Henrique Serra", "TecnoJr"];
+const CompanyAccess = [0, 0];
 // Verifica se o diretório existe, se não cria o diretório
 checkDirectorySync = (directory) =>{
   try {
@@ -73,7 +74,6 @@ checkMarginDPI = (dpi, layout)=>{
       
     }
   })
-  //rightLeft, topBottom
   if(layout === 'portrait'){
     switch (value) {
       case 72:
@@ -122,24 +122,25 @@ const generate = (req, res, next) => {
   var config_json =  JSON.parse(config);
   var content_json =  JSON.parse(content);
   let valid = false;
-  keys.map(value =>{
-    if(value == content_json.acessKey){
-      valid = true
-    }
-  })
-  keysCompany.map(value =>{
+  let chave;
+  //Verifica se o User e a senha são compativeis 
+  keysCompany.map((value, idx) =>{
     if(value == content_json.company){
-      valid = true
+      if(keys[idx] == content_json.acessKey){
+        valid = true
+        chave = idx
+      }
     }
   })
   if(!valid){
     res.status(406).send('Not Acceptable key or company');
     res.end();
   }else{
+    CompanyAccess[chave]++
+    console.log(CompanyAccess[chave]);
+    
     let {width, height} = checkDPI(config_json.dpi, config_json.layout)
-    let {bottomTop, leftright, fontSize} =checkMarginDPI(config_json.dpi, config_json.layout)
-    console.log(bottomTop);
-    console.log(leftright);
+    let {bottomTop, leftright, fontSize} = checkMarginDPI(config_json.dpi, config_json.layout)
     
     const pdf_config = {
       size: [
@@ -159,52 +160,78 @@ const generate = (req, res, next) => {
         Keywords: 'pdf;javascript' // keywords associated with the document
       }
     }
-    let company = crypto.createHash('sha256').update(content_json.company);
-    let checkDiretory = checkDirectorySync(`${__dirname}/../certified/teste2`);
+    let companyClear = content_json.company.replace(/ /, '')
+    // let company = crypto.createHash('sha256').update(content_json.company);
+    let checkDiretory = checkDirectorySync(`${__dirname}/../certified/${companyClear}`);
     if(checkDiretory){
-
-      for(let key=0;key<content_json.info.length; key++){
-        let pdf = new PDFKit(pdf_config);
-        let text = content_json.text
-        .replace(/%name/g, JSON.parse(content_json.info[key]).name)
-        .replace(/%cpf/g, JSON.parse(content_json.info[key]).cpf)
-        .replace(/%time/g, JSON.parse(content_json.info[key]).workload);
-        // Put image and Text in certified
-        pdf.fontSize(fontSize)
-        .image(image.buffer, 0, 0, {scale:1})
-        .fillColor('black')
-        .text(text, leftright, bottomTop, {align:'justify'});
-        //.addPage()
-
-        // Remove spacebar in name
-        let name_pdf = JSON.parse(content_json.info[key]).name.replace(/\s/g, '');
-        console.log(`Criando certificado ${key}...`);
-
-        pdf.pipe(fs.createWriteStream(`${__dirname}/../certified/teste2/${key}-${name_pdf}.pdf`));
-        console.log(`Gerado certificado ${key}`);
-        pdf.end();
+      let checkSubDiretory = checkDirectorySync(`${__dirname}/../certified/${companyClear}/${CompanyAccess[chave]}`);
+      if(checkSubDiretory){
+        for(let key=0;key<content_json.info.length; key++){
+          let pdf = new PDFKit(pdf_config);
+          let text = content_json.text
+          .replace(/%name/g, JSON.parse(content_json.info[key]).name)
+          .replace(/%cpf/g, JSON.parse(content_json.info[key]).cpf)
+          .replace(/%time/g, JSON.parse(content_json.info[key]).workload);
+          // Put image and Text in certified
+          pdf.fontSize(fontSize)
+          .image(image.buffer, 0, 0, {scale:1})
+          .fillColor('black')
+          .text(text, leftright, bottomTop, {align:'justify'});
+          //.addPage()
+  
+          // Remove spacebar in name
+          let name_pdf = JSON.parse(content_json.info[key]).name.replace(/\s/g, '');
+          console.log(`Criando certificado ${key + 1}...`);
+  
+          pdf.pipe(fs.createWriteStream(`${__dirname}/../certified/${companyClear}/${CompanyAccess[chave]}/${key}-${name_pdf}.pdf`));
+          console.log(`Gerado certificado ${key + 1}`);
+          pdf.end();
+        }
+        next();
+      }else{
+        console.log("Erro ao criar Subdiretório\n" + err1);
       }
-      next();
     }else{
       console.log("Erro ao criar diretório\n" + err1);
     }
   }
 }
 const zip = (req, res, next) => {
-  zipFolder(`${__dirname}/../certified/teste2`, `${__dirname}/../certified/teste2.zip`, function(err) {
+  var key
+  var {content} = req.body;
+  var content_json =  JSON.parse(content);
+  keysCompany.map((value, idx) =>{
+    if(value == content_json.company){
+        key = idx
+    }
+  })
+  let companyClear = content_json.company.replace(/ /, '');
+  console.log(`${CompanyAccess[key]}`);
+  setTimeout(() =>{
+    zipFolder(`${__dirname}/../certified/${companyClear}/${CompanyAccess[key]}`, `${__dirname}/../certified/${companyClear}/${CompanyAccess[key]}.zip`, function(err) {
       if(err) {
-          console.log('oh no!', err);
-          res.sendStatus(500);
+        console.log('oh no!', err);
+        res.sendStatus(500);
       } else {
-          console.log('Arquivo Zipado');
-          next();
+        console.log('Arquivo Zipado');
+        next();
       }
-  });
+    });
+  }, 1000); 
+    
 }
 
 const sendZip = (req, res, next) => {
-
-  var file = `${__dirname}/../certified/teste2.zip`;
+  var {content} = req.body;
+  var content_json =  JSON.parse(content);
+  let key
+  keysCompany.map((value, idx) =>{
+    if(value == content_json.company){
+      key = idx
+    }
+  })
+  let companyClear = content_json.company.replace(/ /, '')
+  var file = `${__dirname}/../certified/${companyClear}/${CompanyAccess[key]}.zip`;
   // var filename = path.basename(file);
   // var mimetype = mime.getType(file);
 
