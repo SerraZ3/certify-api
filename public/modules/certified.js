@@ -171,6 +171,7 @@ const generate = (req, res, next) => {
           let text = content_json.text
           .replace(/%name/g, JSON.parse(content_json.info[key]).name)
           .replace(/%cpf/g, JSON.parse(content_json.info[key]).cpf)
+          .replace(/%team/g, JSON.parse(content_json.info[key]).cpf)
           .replace(/%time/g, JSON.parse(content_json.info[key]).workload);
           // Put image and Text in certified
           pdf.fontSize(fontSize)
