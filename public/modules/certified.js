@@ -1,11 +1,11 @@
 const PDFKit = require('pdfkit');
 const fs = require('fs');
 const zipFolder = require('zip-folder');
-const path = require('path');
-const mime = require('mime');
-const crypto = require('crypto');
+// const path = require('path');
+// const mime = require('mime');
+// const crypto = require('crypto');
 
-const keys = ["Serra.Henrique", "=Certifiy@TecnoJr"];
+const keys = ["Serra.Henrique", "=Certify@TecnoJr"];
 const keysCompany = ["Henrique Serra", "TecnoJr"];
 const CompanyAccess = [0, 0];
 // Verifica se o diretório existe, se não cria o diretório
@@ -175,7 +175,7 @@ const generate = (req, res, next) => {
           // Put image and Text in certified
           pdf.fontSize(fontSize)
           .image(image.buffer, 0, 0, {scale:1})
-          .fillColor('black')
+          .fillColor('white')
           .text(text, leftright, bottomTop, {align:'justify'});
           //.addPage()
   
