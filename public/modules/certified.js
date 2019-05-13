@@ -177,7 +177,7 @@ const generate = (req, res, next) => {
           // Put image and Text in certified
           pdf.fontSize(fontSize)
             .image(image.buffer, 0, 0, { scale: 1 })
-            .fillColor('white')
+            .fillColor('black')
             .text(text, leftright, bottomTop, { align: 'justify' });
           //.addPage()
 
